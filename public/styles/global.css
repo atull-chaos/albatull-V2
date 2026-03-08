@@ -1549,12 +1549,15 @@ main {
 }
 
 .flip-card-front {
+  transform: rotateY(0deg);  /* Explicit 3D plane — fixes backface bleed on Safari/Chrome */
   background: #1a1a1a;
+  z-index: 2;
 }
 
 .flip-card-back {
   transform: rotateY(180deg);
   background: #1a1a1a;
+  z-index: 1;
 }
 
 .flip-card-front video,
@@ -1606,6 +1609,12 @@ main {
 }
 .flip-card.is-flipped:nth-child(even) .flip-card-inner {
   transform: rotateY(180deg) rotateZ(0.5deg);
+}
+
+/* Wave scroll motion — applied dynamically via JS */
+.flip-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 /* Hover lift */

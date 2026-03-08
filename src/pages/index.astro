@@ -72,7 +72,6 @@ const palettePhoto = botanicalPhotos.length > 0
           class="palette-image"
           src={palettePhoto?.img}
           alt={palettePhoto?.title || ''}
-          crossorigin="anonymous"
         />
       </div>
       <div class="palette-overlay">
@@ -90,7 +89,6 @@ const palettePhoto = botanicalPhotos.length > 0
               id="heroFeaturedImg"
               src={featuredPhoto?.img}
               alt={featuredPhoto?.title}
-              crossorigin="anonymous"
             />
           </a>
           <div class="hero-featured-title">{featuredPhoto?.title}</div>
@@ -221,38 +219,49 @@ const palettePhoto = botanicalPhotos.length > 0
       // Final soft blur pass via CSS (canvas itself gets filter)
     }
 
-    // Extract colors from the palette image (left column) to paint the abstract background
+    // Extract colors from the palette image (left column) to paint the abstract background.
+    // We create a SEPARATE Image() with crossOrigin for canvas pixel access.
+    // The display <img> does NOT have crossorigin (Sanity CDN rejects CORS requests with 503).
+    // If the CORS image fails, we fall back to a neutral gradient.
     const paletteImg = document.getElementById('paletteImg');
     const paletteCanvas = document.getElementById('paletteCanvas');
 
     if (paletteImg && paletteCanvas) {
-      function generate() {
+      function paintFallback() {
+        const ctx = paletteCanvas.getContext('2d');
+        const w = paletteCanvas.width = paletteCanvas.offsetWidth * 2;
+        const h = paletteCanvas.height = paletteCanvas.offsetHeight * 2;
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, '#e8e4e0');
+        grad.addColorStop(0.5, '#d4cfc8');
+        grad.addColorStop(1, '#f0ece8');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function generateFromImage(img) {
         try {
-          const colors = extractColors(paletteImg, 64);
+          const colors = extractColors(img, 64);
           paintPalette(paletteCanvas, colors);
         } catch (e) {
-          // CORS or other error — paint neutral fallback
-          const ctx = paletteCanvas.getContext('2d');
-          const w = paletteCanvas.width = paletteCanvas.offsetWidth * 2;
-          const h = paletteCanvas.height = paletteCanvas.offsetHeight * 2;
-          const grad = ctx.createLinearGradient(0, 0, w, h);
-          grad.addColorStop(0, '#e8e4e0');
-          grad.addColorStop(0.5, '#d4cfc8');
-          grad.addColorStop(1, '#f0ece8');
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, 0, w, h);
+          paintFallback();
         }
       }
 
-      if (paletteImg.complete) {
-        generate();
-      } else {
-        paletteImg.addEventListener('load', generate);
-      }
+      // Try loading a CORS-enabled copy for canvas color extraction
+      const corsImg = new Image();
+      corsImg.crossOrigin = 'anonymous';
+      corsImg.onload = () => generateFromImage(corsImg);
+      corsImg.onerror = () => paintFallback(); // Sanity CDN may reject CORS — that's fine
+      corsImg.src = paletteImg.src;
 
-      // Regenerate on resize
+      // Regenerate on resize using whichever image loaded
       window.addEventListener('resize', () => {
-        if (paletteImg.complete) generate();
+        if (corsImg.complete && corsImg.naturalWidth > 0) {
+          generateFromImage(corsImg);
+        } else {
+          paintFallback();
+        }
       });
     }
   </script>

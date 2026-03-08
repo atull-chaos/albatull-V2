@@ -2,56 +2,57 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 // Placeholder video clips from Pexels (free stock, royalty-free)
-// Each card has a FRONT video (wider/establishing) and BACK video (close-up/detail)
+// Front face: poster image (loads instantly, always visible)
+// Back face: video (plays when card flips on scroll/hover)
 // User will replace with their own archive footage
 const videos = [
   {
-    title: 'Botanical',
-    subtitle: 'Macro Studies',
-    frontVideo: 'https://videos.pexels.com/video-files/3864103/3864103-hd_1920_1080_30fps.mp4',
-    backVideo:  'https://videos.pexels.com/video-files/3150344/3150344-uhd_2732_1440_25fps.mp4'
-  },
-  {
     title: 'Ocean',
     subtitle: 'Tidal Rhythms',
-    frontVideo: 'https://videos.pexels.com/video-files/1390942/1390942-uhd_2732_1440_24fps.mp4',
-    backVideo:  'https://videos.pexels.com/video-files/1181911/1181911-hd_1920_1080_30fps.mp4'
+    poster: 'https://images.pexels.com/photos/1295138/pexels-photo-1295138.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/1093662/1093662-uhd_2560_1440_30fps.mp4'
+  },
+  {
+    title: 'Abstract Motion',
+    subtitle: 'Color in Movement',
+    poster: 'https://images.pexels.com/photos/3075993/pexels-photo-3075993.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4'
   },
   {
     title: 'Urban Flow',
     subtitle: 'City Rhythms',
-    frontVideo: 'https://videos.pexels.com/video-files/5544054/5544054-hd_1920_1080_30fps.mp4',
-    backVideo:  'https://videos.pexels.com/video-files/6529560/6529560-hd_1920_1080_30fps.mp4'
+    poster: 'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/5544054/5544054-hd_1920_1080_30fps.mp4'
   },
   {
-    title: 'Abstract',
-    subtitle: 'Color in Movement',
-    frontVideo: 'https://videos.pexels.com/video-files/3051358/3051358-hd_1920_1080_30fps.mp4',
-    backVideo:  'https://videos.pexels.com/video-files/9668753/9668753-hd_1920_1080_30fps.mp4'
+    title: 'Natural Light',
+    subtitle: 'Golden Hour Series',
+    poster: 'https://images.pexels.com/photos/1761279/pexels-photo-1761279.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_25fps.mp4'
+  },
+  {
+    title: 'Botanical',
+    subtitle: 'Macro Studies',
+    poster: 'https://images.pexels.com/photos/1179229/pexels-photo-1179229.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/3864103/3864103-hd_1920_1080_30fps.mp4'
+  },
+  {
+    title: 'Atmosphere',
+    subtitle: 'Mood & Texture',
+    poster: 'https://images.pexels.com/photos/1671325/pexels-photo-1671325.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/856974/856974-hd_1920_1080_30fps.mp4'
   },
   {
     title: 'Aerial',
     subtitle: 'Above the Terrain',
-    frontVideo: 'https://videos.pexels.com/video-files/29138481/29138481-uhd_2560_1440_30fps.mp4',
-    backVideo:  'https://videos.pexels.com/video-files/6772135/6772135-hd_1920_1080_30fps.mp4'
-  },
-  {
-    title: 'Texture',
-    subtitle: 'Material & Form',
-    frontVideo: 'https://videos.pexels.com/video-files/4623748/4623748-hd_1920_1080_30fps.mp4',
-    backVideo:  'https://videos.pexels.com/video-files/6577871/6577871-hd_1920_1080_30fps.mp4'
-  },
-  {
-    title: 'Architecture',
-    subtitle: 'Structure & Shadow',
-    frontVideo: 'https://videos.pexels.com/video-files/4995563/4995563-hd_1920_1080_30fps.mp4',
-    backVideo:  'https://videos.pexels.com/video-files/32236967/32236967-hd_1920_1080_30fps.mp4'
+    poster: 'https://images.pexels.com/photos/1252916/pexels-photo-1252916.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/1390942/1390942-uhd_2732_1440_24fps.mp4'
   },
   {
     title: 'Golden Hour',
     subtitle: 'Light & Silhouette',
-    frontVideo: 'https://videos.pexels.com/video-files/34204590/34204590-uhd_2560_1440_30fps.mp4',
-    backVideo:  'https://videos.pexels.com/video-files/4183292/4183292-hd_1920_1080_30fps.mp4'
+    poster: 'https://images.pexels.com/photos/36717/amazing-animal-beautiful-beautifull.jpg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/854669/854669-hd_1920_1080_30fps.mp4'
   }
 ];
 ---
@@ -67,28 +68,23 @@ const videos = [
       {videos.map((v, i) => (
         <div class="flip-card" data-index={i}>
           <div class="flip-card-inner">
-            <!-- Front: establishing/wide video -->
+            <!-- Front: poster image (always visible, loads instantly) -->
             <div class="flip-card-front">
-              <video
-                src={v.frontVideo}
-                muted
-                loop
-                playsinline
-                preload="none"
-              ></video>
+              <img src={v.poster} alt={v.title} loading="lazy" />
               <div class="flip-card-label">
                 <h2>{v.title}</h2>
                 <span>{v.subtitle}</span>
               </div>
             </div>
-            <!-- Back: close-up/detail video (revealed on flip) -->
+            <!-- Back: playing video (revealed on flip) -->
             <div class="flip-card-back">
               <video
-                src={v.backVideo}
+                src={v.video}
                 muted
                 loop
                 playsinline
                 preload="none"
+                poster={v.poster}
               ></video>
               <div class="flip-card-label">
                 <h2>{v.title}</h2>
@@ -102,92 +98,89 @@ const videos = [
   </div>
 
   <script>
-    // === Flip Card Controller ===
-    // Both sides have video. Front video plays when card is visible (not flipped).
-    // When the card flips (scroll into center or hover), the back video plays
-    // and the front video pauses. Uses IntersectionObserver for viewport-aware playback.
+    // === Flip Card Controller with Wave Motion ===
+    // Front face shows a poster image. When the card scrolls into the
+    // center of the viewport, it flips to reveal the video on the back.
+    // A scroll-driven wave effect adds gentle motion as cards flow past.
 
     const cards = document.querySelectorAll('.flip-card');
 
-    function setCardState(card, flipped) {
-      const frontVideo = card.querySelector('.flip-card-front video');
-      const backVideo = card.querySelector('.flip-card-back video');
-
-      if (flipped) {
-        card.classList.add('is-flipped');
-        if (frontVideo) frontVideo.pause();
-        if (backVideo) backVideo.play().catch(() => {});
-      } else {
-        card.classList.remove('is-flipped');
-        if (backVideo) backVideo.pause();
-        // Only play front video if card is in viewport
-        if (frontVideo && card.dataset.inView === 'true') {
-          frontVideo.play().catch(() => {});
-        }
-      }
+    // ── Wave motion on scroll ──────────────────────────────────────
+    // Cards gently bob and tilt as they move through the viewport,
+    // creating a flowing wave pattern.
+    let ticking = false;
+    function updateWave() {
+      const vh = window.innerHeight;
+      cards.forEach((card, i) => {
+        const rect = card.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+        // Normalize position: 0 = top of viewport, 1 = bottom
+        const progress = centerY / vh;
+        // Sine wave: peaks when card is in center of viewport
+        const wave = Math.sin(progress * Math.PI) * 6;
+        // Alternating tilt for each card (creates wave cascade)
+        const tiltDir = i % 2 === 0 ? 1 : -1;
+        const tilt = Math.sin(progress * Math.PI * 1.2) * 0.8 * tiltDir;
+        card.style.transform = `translateY(${wave}px) rotateZ(${tilt}deg)`;
+      });
+      ticking = false;
     }
 
-    // Track viewport visibility
-    const viewObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const card = entry.target;
-        const frontVideo = card.querySelector('.flip-card-front video');
-        const backVideo = card.querySelector('.flip-card-back video');
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(updateWave);
+        ticking = true;
+      }
+    }, { passive: true });
 
-        if (entry.isIntersecting) {
-          card.dataset.inView = 'true';
-          // Start the front video playing as soon as card enters viewport
-          if (!card.classList.contains('is-flipped') && frontVideo) {
-            frontVideo.play().catch(() => {});
-          }
-        } else {
-          card.dataset.inView = 'false';
-          // Pause everything and un-flip when out of view
-          if (frontVideo) frontVideo.pause();
-          if (backVideo) backVideo.pause();
-          card.classList.remove('is-flipped');
-        }
-      });
-    }, {
-      threshold: [0, 0.2],
-      rootMargin: '50px 0px'
-    });
+    // Initial wave position
+    updateWave();
 
-    // Flip cards when they reach the center of the viewport
+    // ── Flip on scroll into center ─────────────────────────────────
+    // When a card enters the center ~40% of the viewport, flip it
+    // and start the video. When it leaves, un-flip and pause.
     const flipObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         const card = entry.target;
-        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-          setCardState(card, true);
-        } else if (!entry.isIntersecting || entry.intersectionRatio < 0.2) {
-          // Only un-flip if not hovered
+        const video = card.querySelector('.flip-card-back video');
+
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
+          // Flip and play video
+          card.classList.add('is-flipped');
+          if (video) video.play().catch(() => {});
+        } else if (!entry.isIntersecting || entry.intersectionRatio < 0.15) {
+          // Un-flip and pause (unless hovered)
           if (!card.matches(':hover')) {
-            setCardState(card, false);
+            card.classList.remove('is-flipped');
+            if (video) video.pause();
           }
         }
       });
     }, {
-      threshold: [0, 0.2, 0.5, 0.8],
-      rootMargin: '-20% 0px -20% 0px'
+      threshold: [0, 0.15, 0.35, 0.6],
+      rootMargin: '-10% 0px -10% 0px'
     });
 
     cards.forEach(card => {
-      viewObserver.observe(card);
       flipObserver.observe(card);
 
       // Also flip on hover
       card.addEventListener('mouseenter', () => {
-        setCardState(card, true);
+        card.classList.add('is-flipped');
+        const video = card.querySelector('.flip-card-back video');
+        if (video) video.play().catch(() => {});
       });
 
       card.addEventListener('mouseleave', () => {
-        // Only un-flip if not prominently centered in viewport
+        // Only un-flip if not centered in viewport
         const rect = card.getBoundingClientRect();
         const vh = window.innerHeight;
         const centerY = rect.top + rect.height / 2;
         const isCenter = centerY > vh * 0.3 && centerY < vh * 0.7;
         if (!isCenter) {
-          setCardState(card, false);
+          card.classList.remove('is-flipped');
+          const video = card.querySelector('.flip-card-back video');
+          if (video) video.pause();
         }
       });
     });
