@@ -1,0 +1,12 @@
+node_modules/
+dist/
+deploy/
+.astro/
+.DS_Store
+.env
+.env.*
+
+# Sanity build cache (auto-generated, not machine-specific — keep it!)
+# This file ensures builds work even when Sanity is temporarily down.
+# Uncomment the line below to exclude it from git:
+# src/data/.sanity-cache.json
