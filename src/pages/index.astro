@@ -10,34 +10,7 @@ let featuredPhoto = null;
 
 const { photos: rawPhotos, categories: rawCats, featured: rawFeatured, source } = await fetchAllWithCache();
 
-if (source === 'sanity' && rawPhotos) {
-  // Live Sanity data — transform with urlFor
-  photos = rawPhotos.map(p => ({
-    id:    p._id,
-    title: p.title || 'Untitled',
-    cat:   p.category?.name || 'Uncategorized',
-    catSlug: p.category?.slug || '',
-    slug:  p.slug || p._id,
-    img:   p.image ? urlFor(p.image).width(800).quality(80).auto('format').url() : '',
-    desc:  p.description || ''
-  })).filter(p => p.img);
-
-  categories = rawCats.map(c => ({
-    name:  c.name,
-    slug:  c.slug,
-    count: c.photoCount || 0
-  }));
-
-  if (rawFeatured && rawFeatured.image) {
-    featuredPhoto = {
-      title: rawFeatured.title || 'Untitled',
-      cat:   rawFeatured.category?.name || '',
-      img:   urlFor(rawFeatured.image).width(1000).quality(85).auto('format').url(),
-      slug:  rawFeatured.slug || ''
-    };
-  }
-} else if (source === 'cache' && rawPhotos) {
-  // Cached data — images already have full URLs from previous build
+if ((source === 'sanity' || source === 'cache') && rawPhotos) {
   photos = rawPhotos.map(p => ({
     id:    p._id,
     title: p.title || 'Untitled',
@@ -58,12 +31,11 @@ if (source === 'sanity' && rawPhotos) {
     featuredPhoto = {
       title: rawFeatured.title || 'Untitled',
       cat:   rawFeatured.category?.name || '',
-      img:   urlFor(rawFeatured.image).width(1000).quality(85).auto('format').url(),
+      img:   urlFor(rawFeatured.image).width(1200).quality(90).auto('format').url(),
       slug:  rawFeatured.slug || ''
     };
   }
 } else {
-  // Local fallback (no Sanity, no cache)
   photos = LOCAL_PHOTOS.map(p => ({
     ...p,
     catSlug: makeCatSlug(p.cat)
@@ -84,30 +56,25 @@ if (!featuredPhoto && photos.length > 0) {
 
 <BaseLayout title="Alba Tull - Photography Portfolio">
   <div class="home-layout">
-    <!-- Left: Rolodex -->
-    <div class="rolodex-column">
-      <div class="rolodex-scroll">
-        <div class="rolodex-spacer">
-          <div class="rolodex-sticky">
-            <div class="rolodex-perspective" id="roloWrapper">
-              <!-- Cards injected by script below -->
-            </div>
-          </div>
-        </div>
+    <!-- Left: Abstract Color Palette -->
+    <div class="palette-column">
+      <canvas id="paletteCanvas" class="palette-canvas"></canvas>
+      <div class="palette-overlay">
+        <span class="palette-text">ENTRY PAGE</span>
       </div>
     </div>
 
-    <!-- Right: Hero Panel -->
+    <!-- Right: Featured Photo + Branding -->
     <div class="hero-panel">
-      <!-- Featured Photo — centered, prominent -->
       <div class="hero-featured-wrap">
         <div class="hero-featured">
-          <div class="hero-featured-label">Picture of the Moment</div>
+          <div class="hero-featured-label">Featured Photo</div>
           <a href={featuredPhoto?.slug ? `/photo/${featuredPhoto.slug}/` : '#'}>
             <img
               id="heroFeaturedImg"
               src={featuredPhoto?.img}
               alt={featuredPhoto?.title}
+              crossorigin="anonymous"
             />
           </a>
           <div class="hero-featured-title">{featuredPhoto?.title}</div>
@@ -126,164 +93,151 @@ if (!featuredPhoto && photos.length > 0) {
         </div>
       </div>
     </div>
-
-    <!-- Hidden info targets for rolodex scroll (used by JS) -->
-    <div style="display:none">
-      <span id="infoCategory"></span>
-      <span id="infoTitle"></span>
-      <span id="infoDesc"></span>
-    </div>
   </div>
 
-  <script define:vars={{ photos }}>
-    // === ROLODEX CIRCULAR WHEEL v5 — tighter, compact ===
-    // Per-card perspective for Firefox fix. Native scroll for smoothness.
+  <script>
+    // === Abstract Color Palette Generator ===
+    // Extracts dominant colors from the featured photo and paints
+    // a blurred, abstract composition on the left canvas.
 
-    // Scale radius to viewport height so cards fill the wheel on any screen
-    var baseRadius = Math.max(320, Math.min(600, window.innerHeight * 0.52));
-    var RADIUS = baseRadius;
-    var CARD_GAP_DEG = 22;
-    var VISIBLE_CARDS = 11;
-    var HALF_VISIBLE = Math.floor(VISIBLE_CARDS / 2);
-    var SCROLL_PER_CARD = 150;
-    var PERSPECTIVE = 1000;
-    var LOOP_BUFFER = 50;
-    var CARD_GAP_RAD = CARD_GAP_DEG * Math.PI / 180;
+    function extractColors(img, sampleSize) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = sampleSize;
+      canvas.height = sampleSize;
+      ctx.drawImage(img, 0, 0, sampleSize, sampleSize);
+      const data = ctx.getImageData(0, 0, sampleSize, sampleSize).data;
 
-    function posMod(n, m) { return ((n % m) + m) % m; }
-
-    var scrollContainer = document.querySelector('.rolodex-scroll');
-    var spacer = document.querySelector('.rolodex-spacer');
-    var wrapper = document.querySelector('.rolodex-perspective');
-
-    if (scrollContainer && spacer && wrapper && photos.length) {
-      var total = photos.length;
-
-      wrapper.style.perspective = 'none';
-      wrapper.style.transformStyle = 'flat';
-
-      // Only preload the first ~30 images (nearby cards), not all 594
-      var preloadCount = Math.min(30, total);
-      for (var pi = 0; pi < preloadCount; pi++) {
-        var preImg = new Image();
-        preImg.src = photos[pi].img;
+      // Collect color samples
+      const colors = [];
+      for (let i = 0; i < data.length; i += 4 * 3) {
+        colors.push([data[i], data[i+1], data[i+2]]);
       }
 
-      var totalScrollItems = total * LOOP_BUFFER;
-      var totalScrollHeight = totalScrollItems * SCROLL_PER_CARD;
-      spacer.style.height = totalScrollHeight + 'px';
+      // Simple k-means-ish: bucket by hue regions
+      const buckets = {};
+      colors.forEach(([r, g, b]) => {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let hue = 0;
+        if (max !== min) {
+          if (max === r) hue = ((g - b) / (max - min)) % 6;
+          else if (max === g) hue = (b - r) / (max - min) + 2;
+          else hue = (r - g) / (max - min) + 4;
+        }
+        hue = Math.round(((hue * 60) + 360) % 360);
+        const bucket = Math.floor(hue / 30);
+        const sat = max === 0 ? 0 : (max - min) / max;
+        const val = max / 255;
 
-      var startScroll = Math.floor(totalScrollItems / 2) * SCROLL_PER_CARD;
-      scrollContainer.scrollTop = startScroll - (startScroll % (total * SCROLL_PER_CARD));
+        if (!buckets[bucket]) buckets[bucket] = { r: 0, g: 0, b: 0, count: 0, sat: 0, val: 0 };
+        buckets[bucket].r += r;
+        buckets[bucket].g += g;
+        buckets[bucket].b += b;
+        buckets[bucket].sat += sat;
+        buckets[bucket].val += val;
+        buckets[bucket].count++;
+      });
 
-      var cards = [];
-      for (var i = 0; i < VISIBLE_CARDS; i++) {
-        var sheet = document.createElement('div');
-        sheet.className = 'rolo-card';
-        sheet.style.transformStyle = 'flat';
-        sheet.innerHTML = '<div class="rolo-media"><img class="rolo-img" src="" alt="" loading="eager"></div><div class="rolo-label"></div>';
-        wrapper.appendChild(sheet);
-        cards.push(sheet);
+      // Get top 6 dominant color buckets
+      const sorted = Object.values(buckets)
+        .filter(b => b.count > 5)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6)
+        .map(b => ({
+          r: Math.round(b.r / b.count),
+          g: Math.round(b.g / b.count),
+          b: Math.round(b.b / b.count),
+          sat: b.sat / b.count,
+          val: b.val / b.count,
+          weight: b.count
+        }));
+
+      return sorted;
+    }
+
+    function paintPalette(canvas, colors) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.offsetWidth * 2; // 2x for retina
+      const h = canvas.height = canvas.offsetHeight * 2;
+
+      // Fill with the most dominant color as base
+      if (colors.length === 0) {
+        ctx.fillStyle = '#e8e4e0';
+        ctx.fillRect(0, 0, w, h);
+        return;
       }
 
-      var currentIndex = -1;
+      const bg = colors[0];
+      ctx.fillStyle = `rgb(${bg.r}, ${bg.g}, ${bg.b})`;
+      ctx.fillRect(0, 0, w, h);
 
-      function update() {
-        var scrollTop = scrollContainer.scrollTop;
-        var floatIndex = scrollTop / SCROLL_PER_CARD;
-        var baseIndex = Math.floor(floatIndex);
-        var fraction = floatIndex - baseIndex;
-        var centerPhotoIdx = posMod(baseIndex, total);
+      // Paint large, soft, overlapping shapes for each color
+      colors.forEach((c, i) => {
+        const numBlobs = 2 + Math.floor(Math.random() * 3);
+        for (let j = 0; j < numBlobs; j++) {
+          const x = Math.random() * w;
+          const y = Math.random() * h;
+          const radius = (0.2 + Math.random() * 0.5) * Math.min(w, h);
 
-        // Update "Now Viewing" text only — hero featured image stays fixed
-        if (centerPhotoIdx !== currentIndex) {
-          currentIndex = centerPhotoIdx;
-          var p = photos[currentIndex];
-          document.getElementById('infoCategory').textContent = p.cat;
-          document.getElementById('infoTitle').textContent = p.title;
-          document.getElementById('infoDesc').textContent = p.desc;
-        }
+          const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+          const alpha = 0.15 + Math.random() * 0.35;
+          grad.addColorStop(0, `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`);
+          grad.addColorStop(0.5, `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha * 0.4})`);
+          grad.addColorStop(1, `rgba(${c.r}, ${c.g}, ${c.b}, 0)`);
 
-        for (var slot = 0; slot < VISIBLE_CARDS; slot++) {
-          var offset = slot - HALF_VISIBLE;
-          var sheetEl = cards[slot];
-          var photoIdx = posMod(baseIndex + offset, total);
-          var photo = photos[photoIdx];
-          var dist = offset - fraction;
-          var angle = dist * CARD_GAP_RAD;
-
-          var y = RADIUS * Math.sin(angle);
-          var z = RADIUS * Math.cos(angle) - RADIUS;
-          var rotXDeg = angle * (180 / Math.PI);
-
-          sheetEl.style.visibility = 'visible';
-
-          sheetEl.style.transform = 'perspective(' + PERSPECTIVE + 'px) translateY(' + y + 'px) translateZ(' + z + 'px) rotateX(' + rotXDeg + 'deg)';
-          sheetEl.style.transformOrigin = 'center center';
-          sheetEl.style.zIndex = Math.round(50 + 50 * Math.cos(angle));
-
-          var isFront = Math.abs(angle) < 0.4;
-          sheetEl.style.pointerEvents = isFront ? 'auto' : 'none';
-
-          // Tighter fade — cards disappear sooner for cleaner look
-          var absDist = Math.abs(dist);
-          var opacity;
-          if (absDist < 1.5) { opacity = 1; }
-          else if (absDist < 2.2) { opacity = 1 - (absDist - 1.5) / 0.7; }
-          else { opacity = 0; }
-          sheetEl.style.opacity = opacity;
-
-          var img = sheetEl.querySelector('.rolo-img');
-          if (img && img.getAttribute('src') !== photo.img) {
-            img.src = photo.img;
-            img.alt = photo.title;
-          }
-          var label = sheetEl.querySelector('.rolo-label');
-          if (label) {
-            label.textContent = photo.cat;
-            label.style.opacity = isFront ? 1 : 0;
-          }
-
-          (function(pi, ph) {
-            sheetEl.onclick = function() {
-              // Navigate to the photo's detail page directly
-              if (ph.slug) {
-                window.location.href = '/photo/' + ph.slug + '/';
-              } else if (ph.catSlug) {
-                window.location.href = '/category/' + ph.catSlug + '/';
-              }
-            };
-          })(photoIdx, photo);
-        }
-
-        var oneLoop = total * SCROLL_PER_CARD;
-        if (scrollTop < oneLoop * 5) {
-          scrollContainer.scrollTop = scrollTop + oneLoop * (LOOP_BUFFER / 2);
-        } else if (scrollTop > totalScrollHeight - oneLoop * 5) {
-          scrollContainer.scrollTop = scrollTop - oneLoop * (LOOP_BUFFER / 2);
-        }
-      }
-
-      var ticking = false;
-      scrollContainer.addEventListener('scroll', function() {
-        if (!ticking) {
-          requestAnimationFrame(function() { update(); ticking = false; });
-          ticking = true;
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, w, h);
         }
       });
 
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-          e.preventDefault();
-          scrollContainer.scrollBy({ top: -SCROLL_PER_CARD, behavior: 'smooth' });
-        }
-        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-          e.preventDefault();
-          scrollContainer.scrollBy({ top: SCROLL_PER_CARD, behavior: 'smooth' });
-        }
-      });
+      // Add a gentle film grain texture
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const pixels = imageData.data;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 15;
+        pixels[i] += noise;
+        pixels[i+1] += noise;
+        pixels[i+2] += noise;
+      }
+      ctx.putImageData(imageData, 0, 0);
 
-      update();
+      // Final soft blur pass via CSS (canvas itself gets filter)
+    }
+
+    // Wait for featured image to load, then extract colors
+    const heroImg = document.getElementById('heroFeaturedImg');
+    const paletteCanvas = document.getElementById('paletteCanvas');
+
+    if (heroImg && paletteCanvas) {
+      function generate() {
+        try {
+          const colors = extractColors(heroImg, 64);
+          paintPalette(paletteCanvas, colors);
+        } catch (e) {
+          // CORS or other error — paint neutral fallback
+          const ctx = paletteCanvas.getContext('2d');
+          const w = paletteCanvas.width = paletteCanvas.offsetWidth * 2;
+          const h = paletteCanvas.height = paletteCanvas.offsetHeight * 2;
+          const grad = ctx.createLinearGradient(0, 0, w, h);
+          grad.addColorStop(0, '#e8e4e0');
+          grad.addColorStop(0.5, '#d4cfc8');
+          grad.addColorStop(1, '#f0ece8');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, w, h);
+        }
+      }
+
+      if (heroImg.complete) {
+        generate();
+      } else {
+        heroImg.addEventListener('load', generate);
+      }
+
+      // Regenerate on resize
+      window.addEventListener('resize', () => {
+        if (heroImg.complete) generate();
+      });
     }
   </script>
 </BaseLayout>

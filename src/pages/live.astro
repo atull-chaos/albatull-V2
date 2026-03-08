@@ -1,0 +1,137 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Placeholder video clips from free stock sources
+// User will replace with their own archive footage
+const videos = [
+  {
+    title: 'Abstract Motion',
+    subtitle: 'Color in Movement',
+    poster: 'https://images.pexels.com/photos/3075993/pexels-photo-3075993.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4'
+  },
+  {
+    title: 'Urban Flow',
+    subtitle: 'City Rhythms',
+    poster: 'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/1093662/1093662-uhd_2560_1440_30fps.mp4'
+  },
+  {
+    title: 'Natural Light',
+    subtitle: 'Golden Hour Series',
+    poster: 'https://images.pexels.com/photos/1761279/pexels-photo-1761279.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_25fps.mp4'
+  },
+  {
+    title: 'Botanical',
+    subtitle: 'Macro Studies',
+    poster: 'https://images.pexels.com/photos/1179229/pexels-photo-1179229.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/2257010/2257010-hd_1920_1080_25fps.mp4'
+  },
+  {
+    title: 'Atmosphere',
+    subtitle: 'Mood & Texture',
+    poster: 'https://images.pexels.com/photos/1671325/pexels-photo-1671325.jpeg?auto=compress&w=900',
+    video: 'https://videos.pexels.com/video-files/856974/856974-hd_1920_1080_30fps.mp4'
+  }
+];
+---
+
+<BaseLayout title="Live — Alba Tull">
+  <div class="live-page">
+    <div class="live-header">
+      <h1 class="live-title">Motion</h1>
+      <p class="live-subtitle">Moving images & live captures</p>
+    </div>
+
+    <div class="flip-cards-container">
+      {videos.map((v, i) => (
+        <div class="flip-card" data-index={i}>
+          <div class="flip-card-inner">
+            <!-- Front: poster / still frame -->
+            <div class="flip-card-front">
+              <img src={v.poster} alt={v.title} loading="lazy" />
+              <div class="flip-card-label">
+                <h2>{v.title}</h2>
+                <span>{v.subtitle}</span>
+              </div>
+            </div>
+            <!-- Back: playing video -->
+            <div class="flip-card-back">
+              <video
+                src={v.video}
+                muted
+                loop
+                playsinline
+                preload="none"
+                poster={v.poster}
+              ></video>
+              <div class="flip-card-label">
+                <h2>{v.title}</h2>
+                <span>{v.subtitle}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <script>
+    // === Flip Card Controller ===
+    // Cards start flat (poster visible). When they scroll into view,
+    // they flip to reveal the video playing on the back face.
+    // Uses IntersectionObserver for viewport-aware playback.
+
+    const cards = document.querySelectorAll('.flip-card');
+
+    // Flip on scroll into view
+    const flipObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const card = entry.target;
+        const video = card.querySelector('.flip-card-back video');
+
+        if (entry.isIntersecting && entry.intersectionRatio > 0.4) {
+          // Flip the card and start video
+          card.classList.add('is-flipped');
+          if (video) {
+            video.play().catch(() => {});
+          }
+        } else {
+          // Un-flip and pause
+          card.classList.remove('is-flipped');
+          if (video) {
+            video.pause();
+          }
+        }
+      });
+    }, {
+      threshold: [0, 0.4, 0.8],
+      rootMargin: '-10% 0px -10% 0px'
+    });
+
+    cards.forEach(card => {
+      flipObserver.observe(card);
+
+      // Also flip on hover (for cards already in view)
+      card.addEventListener('mouseenter', () => {
+        card.classList.add('is-flipped');
+        const video = card.querySelector('.flip-card-back video');
+        if (video) video.play().catch(() => {});
+      });
+
+      card.addEventListener('mouseleave', () => {
+        // Only un-flip if not prominently in view
+        const rect = card.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const centerY = rect.top + rect.height / 2;
+        const isCenter = centerY > vh * 0.3 && centerY < vh * 0.7;
+        if (!isCenter) {
+          card.classList.remove('is-flipped');
+          const video = card.querySelector('.flip-card-back video');
+          if (video) video.pause();
+        }
+      });
+    });
+  </script>
+</BaseLayout>
