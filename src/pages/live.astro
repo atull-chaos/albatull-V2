@@ -115,7 +115,8 @@ const videos = [
   <script>
     // === Flip Card Controller — Always in Motion ===
     // Both faces show the SAME video (back offset a few seconds).
-    // Cards flip when scrolled to center OR when cursor is nearby.
+    // Scroll flips cards once as they reach center.
+    // Hover/click TOGGLES the flip (front→back or back→front).
     // poster attribute ensures cards never show black.
 
     const cards = document.querySelectorAll('.flip-card');
@@ -148,6 +149,7 @@ const videos = [
           if (frontVideo) frontVideo.pause();
           if (backVideo) backVideo.pause();
           card.classList.remove('is-flipped');
+          card.dataset.scrollFlipped = '';
         }
       });
     }, {
@@ -155,15 +157,22 @@ const videos = [
       rootMargin: '100px 0px'
     });
 
-    // ── Flip when card reaches center of viewport ──────────────────
+    // ── Scroll flip: flip once when card reaches center ─────────────
+    // Sets a baseline state. Hover/click toggle from this state.
     const flipObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         const card = entry.target;
         if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
-          card.classList.add('is-flipped');
+          // Only auto-flip on scroll if user hasn't manually toggled
+          if (card.dataset.userToggled !== 'true') {
+            card.classList.add('is-flipped');
+            card.dataset.scrollFlipped = 'true';
+          }
         } else if (!entry.isIntersecting || entry.intersectionRatio < 0.15) {
           if (!card.matches(':hover')) {
             card.classList.remove('is-flipped');
+            card.dataset.scrollFlipped = '';
+            card.dataset.userToggled = '';
           }
         }
       });
@@ -172,49 +181,38 @@ const videos = [
       rootMargin: '-10% 0px -10% 0px'
     });
 
-    // ── Cursor proximity — flip cards when mouse is nearby ─────────
-    // Track mouse position and flip the nearest card within range
-    let mouseY = -1;
-    document.addEventListener('mousemove', (e) => {
-      mouseY = e.clientY;
-      cards.forEach(card => {
-        if (card.dataset.inView !== 'true') return;
-        const rect = card.getBoundingClientRect();
-        const cardCenterY = rect.top + rect.height / 2;
-        const distance = Math.abs(e.clientY - cardCenterY);
-        const proximityThreshold = rect.height * 0.8;
+    // ── Toggle flip function ────────────────────────────────────────
+    function toggleFlip(card) {
+      card.dataset.userToggled = 'true';
+      card.classList.toggle('is-flipped');
+    }
 
-        // Also check horizontal — only flip if cursor is roughly over the card
-        const inHorizontalRange = e.clientX >= rect.left - 100 && e.clientX <= rect.right + 100;
-
-        if (distance < proximityThreshold && inHorizontalRange) {
-          card.classList.add('is-flipped');
-        } else if (distance > proximityThreshold * 1.5) {
-          // Only un-flip if not in center of viewport (scroll observer handles that)
-          const vh = window.innerHeight;
-          const isCenter = cardCenterY > vh * 0.3 && cardCenterY < vh * 0.7;
-          if (!isCenter) {
-            card.classList.remove('is-flipped');
-          }
-        }
-      });
-    }, { passive: true });
-
-    // ── Hover flip (direct hover always flips) ─────────────────────
+    // ── Setup each card ─────────────────────────────────────────────
     cards.forEach(card => {
       viewObserver.observe(card);
       flipObserver.observe(card);
 
-      card.addEventListener('mouseenter', () => {
-        card.classList.add('is-flipped');
+      // Click toggles the flip (works on mobile too)
+      card.addEventListener('click', () => {
+        toggleFlip(card);
       });
 
+      // Hover toggles the flip
+      card.addEventListener('mouseenter', () => {
+        toggleFlip(card);
+      });
+
+      // On mouse leave, restore to scroll-determined state
       card.addEventListener('mouseleave', () => {
+        card.dataset.userToggled = '';
+        // If scroll says it should be flipped (in center), flip it back
         const rect = card.getBoundingClientRect();
         const vh = window.innerHeight;
         const centerY = rect.top + rect.height / 2;
         const isCenter = centerY > vh * 0.3 && centerY < vh * 0.7;
-        if (!isCenter) {
+        if (isCenter) {
+          card.classList.add('is-flipped');
+        } else {
           card.classList.remove('is-flipped');
         }
       });
