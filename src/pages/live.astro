@@ -1,57 +1,64 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-// Placeholder video clips from Pexels (free stock, royalty-free)
-// SAME video plays on both front and back faces, with the back
-// offset by a few seconds — so when the card flips, you see a
-// different moment of the same footage. Always in motion.
-// User will replace with their own archive footage.
+// Placeholder clips from Pexels (free stock, royalty-free).
+// SAME video on both front & back, with the back offset a few seconds.
+// poster = reliable Pexels image (loads instantly, prevents black cards).
+// User will replace with their own footage.
 const videos = [
   {
     title: 'Botanical',
     subtitle: 'Macro Studies',
+    poster: 'https://images.pexels.com/photos/1179229/pexels-photo-1179229.jpeg?auto=compress&w=900',
     video: 'https://videos.pexels.com/video-files/3864103/3864103-hd_1920_1080_30fps.mp4',
     offset: 4
   },
   {
     title: 'Ocean',
     subtitle: 'Tidal Rhythms',
+    poster: 'https://images.pexels.com/photos/1295138/pexels-photo-1295138.jpeg?auto=compress&w=900',
     video: 'https://videos.pexels.com/video-files/1390942/1390942-uhd_2732_1440_24fps.mp4',
     offset: 5
   },
   {
     title: 'Urban Flow',
     subtitle: 'City Rhythms',
+    poster: 'https://images.pexels.com/photos/1563356/pexels-photo-1563356.jpeg?auto=compress&w=900',
     video: 'https://videos.pexels.com/video-files/5544054/5544054-hd_1920_1080_30fps.mp4',
     offset: 3
   },
   {
     title: 'Natural Light',
     subtitle: 'Golden Hour Series',
+    poster: 'https://images.pexels.com/photos/1761279/pexels-photo-1761279.jpeg?auto=compress&w=900',
     video: 'https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_25fps.mp4',
     offset: 4
   },
   {
     title: 'Atmosphere',
     subtitle: 'Mood & Texture',
+    poster: 'https://images.pexels.com/photos/1671325/pexels-photo-1671325.jpeg?auto=compress&w=900',
     video: 'https://videos.pexels.com/video-files/856974/856974-hd_1920_1080_30fps.mp4',
     offset: 3
   },
   {
     title: 'Aerial',
     subtitle: 'Above the Terrain',
+    poster: 'https://images.pexels.com/photos/1252916/pexels-photo-1252916.jpeg?auto=compress&w=900',
     video: 'https://videos.pexels.com/video-files/1093662/1093662-uhd_2560_1440_30fps.mp4',
     offset: 5
   },
   {
     title: 'Abstract',
     subtitle: 'Color in Movement',
+    poster: 'https://images.pexels.com/photos/3075993/pexels-photo-3075993.jpeg?auto=compress&w=900',
     video: 'https://videos.pexels.com/video-files/854669/854669-hd_1920_1080_30fps.mp4',
     offset: 4
   },
   {
     title: 'Golden Hour',
     subtitle: 'Light & Silhouette',
+    poster: 'https://images.pexels.com/photos/36717/amazing-animal-beautiful-beautifull.jpg?auto=compress&w=900',
     video: 'https://videos.pexels.com/video-files/2257010/2257010-hd_1920_1080_25fps.mp4',
     offset: 3
   }
@@ -69,28 +76,30 @@ const videos = [
       {videos.map((v, i) => (
         <div class="flip-card" data-index={i} data-offset={v.offset}>
           <div class="flip-card-inner">
-            <!-- Front: video playing from 0:00 -->
+            <!-- Front: video from 0:00 (poster shows until video loads) -->
             <div class="flip-card-front">
               <video
                 src={v.video}
+                poster={v.poster}
                 muted
                 loop
                 playsinline
-                preload="metadata"
+                preload="auto"
               ></video>
               <div class="flip-card-label">
                 <h2>{v.title}</h2>
                 <span>{v.subtitle}</span>
               </div>
             </div>
-            <!-- Back: SAME video, offset by a few seconds -->
+            <!-- Back: SAME video, offset a few seconds -->
             <div class="flip-card-back">
               <video
                 src={v.video}
+                poster={v.poster}
                 muted
                 loop
                 playsinline
-                preload="metadata"
+                preload="auto"
               ></video>
               <div class="flip-card-label">
                 <h2>{v.title}</h2>
@@ -105,48 +114,22 @@ const videos = [
 
   <script>
     // === Flip Card Controller — Always in Motion ===
-    // Both faces show the SAME video. The back face is offset by a few
-    // seconds so when the card flips, you see a different moment of the
-    // same footage. Both videos play simultaneously when in viewport.
-    // Inspired by MarkClennon.com/motion — everything is always moving.
+    // Both faces show the SAME video (back offset a few seconds).
+    // Cards flip when scrolled to center OR when cursor is nearby.
+    // poster attribute ensures cards never show black.
 
     const cards = document.querySelectorAll('.flip-card');
 
-    // ── Initialize back-video time offsets ──────────────────────────
+    // ── Set back-video time offset once metadata loads ──────────────
     cards.forEach(card => {
       const backVideo = card.querySelector('.flip-card-back video');
       const offset = parseInt(card.dataset.offset) || 4;
       if (backVideo) {
-        // Set the offset once the video metadata is loaded
         backVideo.addEventListener('loadedmetadata', () => {
           backVideo.currentTime = Math.min(offset, backVideo.duration * 0.4);
         }, { once: true });
       }
     });
-
-    // ── Wave motion on scroll ──────────────────────────────────────
-    let ticking = false;
-    function updateWave() {
-      const vh = window.innerHeight;
-      cards.forEach((card, i) => {
-        const rect = card.getBoundingClientRect();
-        const centerY = rect.top + rect.height / 2;
-        const progress = centerY / vh;
-        const wave = Math.sin(progress * Math.PI) * 6;
-        const tiltDir = i % 2 === 0 ? 1 : -1;
-        const tilt = Math.sin(progress * Math.PI * 1.2) * 0.8 * tiltDir;
-        card.style.transform = `translateY(${wave}px) rotateZ(${tilt}deg)`;
-      });
-      ticking = false;
-    }
-
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        requestAnimationFrame(updateWave);
-        ticking = true;
-      }
-    }, { passive: true });
-    updateWave();
 
     // ── Viewport visibility — play/pause both videos ───────────────
     const viewObserver = new IntersectionObserver((entries) => {
@@ -157,19 +140,18 @@ const videos = [
 
         if (entry.isIntersecting) {
           card.dataset.inView = 'true';
-          // Play BOTH videos so the back is already rolling when it flips
+          // Play BOTH so back is already rolling when flip happens
           if (frontVideo) frontVideo.play().catch(() => {});
           if (backVideo) backVideo.play().catch(() => {});
         } else {
           card.dataset.inView = 'false';
           if (frontVideo) frontVideo.pause();
           if (backVideo) backVideo.pause();
-          // Un-flip when fully out of view
           card.classList.remove('is-flipped');
         }
       });
     }, {
-      threshold: [0, 0.15],
+      threshold: [0, 0.1],
       rootMargin: '100px 0px'
     });
 
@@ -190,11 +172,39 @@ const videos = [
       rootMargin: '-10% 0px -10% 0px'
     });
 
+    // ── Cursor proximity — flip cards when mouse is nearby ─────────
+    // Track mouse position and flip the nearest card within range
+    let mouseY = -1;
+    document.addEventListener('mousemove', (e) => {
+      mouseY = e.clientY;
+      cards.forEach(card => {
+        if (card.dataset.inView !== 'true') return;
+        const rect = card.getBoundingClientRect();
+        const cardCenterY = rect.top + rect.height / 2;
+        const distance = Math.abs(e.clientY - cardCenterY);
+        const proximityThreshold = rect.height * 0.8;
+
+        // Also check horizontal — only flip if cursor is roughly over the card
+        const inHorizontalRange = e.clientX >= rect.left - 100 && e.clientX <= rect.right + 100;
+
+        if (distance < proximityThreshold && inHorizontalRange) {
+          card.classList.add('is-flipped');
+        } else if (distance > proximityThreshold * 1.5) {
+          // Only un-flip if not in center of viewport (scroll observer handles that)
+          const vh = window.innerHeight;
+          const isCenter = cardCenterY > vh * 0.3 && cardCenterY < vh * 0.7;
+          if (!isCenter) {
+            card.classList.remove('is-flipped');
+          }
+        }
+      });
+    }, { passive: true });
+
+    // ── Hover flip (direct hover always flips) ─────────────────────
     cards.forEach(card => {
       viewObserver.observe(card);
       flipObserver.observe(card);
 
-      // Hover flip
       card.addEventListener('mouseenter', () => {
         card.classList.add('is-flipped');
       });

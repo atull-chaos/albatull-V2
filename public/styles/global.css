@@ -1521,7 +1521,7 @@ main {
 .flip-card {
   perspective: 1200px;
   width: 100%;
-  max-width: 900px;
+  max-width: 720px;
   cursor: pointer;
 }
 
@@ -1597,24 +1597,21 @@ main {
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* Stagger effect on the cards — slight rotation offsets */
-.flip-card:nth-child(odd) .flip-card-inner {
-  transform: rotateZ(-0.5deg);
+/* Back-face label hidden until card is flipped — prevents mirrored text bleed */
+.flip-card-back .flip-card-label {
+  visibility: hidden;
+  opacity: 0;
 }
-.flip-card:nth-child(even) .flip-card-inner {
-  transform: rotateZ(0.5deg);
-}
-.flip-card.is-flipped:nth-child(odd) .flip-card-inner {
-  transform: rotateY(180deg) rotateZ(-0.5deg);
-}
-.flip-card.is-flipped:nth-child(even) .flip-card-inner {
-  transform: rotateY(180deg) rotateZ(0.5deg);
+.flip-card.is-flipped .flip-card-back .flip-card-label {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s ease 0.5s;  /* fade in after flip animation */
 }
 
-/* Wave scroll motion — applied dynamically via JS */
-.flip-card {
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
+/* Hide front label after flip */
+.flip-card.is-flipped .flip-card-front .flip-card-label {
+  visibility: hidden;
+  opacity: 0;
 }
 
 /* Hover lift */
