@@ -52,13 +52,29 @@ if (!featuredPhoto && photos.length > 0) {
     slug:  photos[0].slug
   };
 }
+
+// Pick a striking photo for the left palette column
+// Use a botanical or abstract photo if available, otherwise a random one
+const botanicalPhotos = photos.filter(p => p.cat?.toLowerCase().includes('botanical'));
+const palettePhoto = botanicalPhotos.length > 0
+  ? botanicalPhotos[Math.floor(Math.random() * botanicalPhotos.length)]
+  : photos[Math.floor(Math.random() * photos.length)];
 ---
 
 <BaseLayout title="Alba Tull - Photography Portfolio">
   <div class="home-layout">
-    <!-- Left: Abstract Color Palette -->
+    <!-- Left: Image with Abstract Color Palette Background -->
     <div class="palette-column">
       <canvas id="paletteCanvas" class="palette-canvas"></canvas>
+      <div class="palette-image-wrap">
+        <img
+          id="paletteImg"
+          class="palette-image"
+          src={palettePhoto?.img}
+          alt={palettePhoto?.title || ''}
+          crossorigin="anonymous"
+        />
+      </div>
       <div class="palette-overlay">
         <span class="palette-text">ENTRY PAGE</span>
       </div>
@@ -97,8 +113,8 @@ if (!featuredPhoto && photos.length > 0) {
 
   <script>
     // === Abstract Color Palette Generator ===
-    // Extracts dominant colors from the featured photo and paints
-    // a blurred, abstract composition on the left canvas.
+    // Extracts dominant colors from the palette image (left column photo)
+    // and paints a blurred, abstract composition behind it on the canvas.
 
     function extractColors(img, sampleSize) {
       const canvas = document.createElement('canvas');
@@ -205,14 +221,14 @@ if (!featuredPhoto && photos.length > 0) {
       // Final soft blur pass via CSS (canvas itself gets filter)
     }
 
-    // Wait for featured image to load, then extract colors
-    const heroImg = document.getElementById('heroFeaturedImg');
+    // Extract colors from the palette image (left column) to paint the abstract background
+    const paletteImg = document.getElementById('paletteImg');
     const paletteCanvas = document.getElementById('paletteCanvas');
 
-    if (heroImg && paletteCanvas) {
+    if (paletteImg && paletteCanvas) {
       function generate() {
         try {
-          const colors = extractColors(heroImg, 64);
+          const colors = extractColors(paletteImg, 64);
           paintPalette(paletteCanvas, colors);
         } catch (e) {
           // CORS or other error — paint neutral fallback
@@ -228,15 +244,15 @@ if (!featuredPhoto && photos.length > 0) {
         }
       }
 
-      if (heroImg.complete) {
+      if (paletteImg.complete) {
         generate();
       } else {
-        heroImg.addEventListener('load', generate);
+        paletteImg.addEventListener('load', generate);
       }
 
       // Regenerate on resize
       window.addEventListener('resize', () => {
-        if (heroImg.complete) generate();
+        if (paletteImg.complete) generate();
       });
     }
   </script>

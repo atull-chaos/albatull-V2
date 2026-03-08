@@ -32,7 +32,28 @@ let related = [];
 let categorySlug = '';
 let metadata = null;
 
-if (source === 'sanity' || source === 'cache') {
+if (source === 'cache') {
+  // Use cache directly — don't hit Sanity API per-photo
+  try {
+    const { readCache } = await import('../../lib/sanity-cache.js');
+    const cached = (readCache() || { photos: [] }).photos.find(p => p.slug === slug);
+    if (cached && cached.image) {
+      photo = {
+        id:    cached._id,
+        title: cached.title || 'Untitled',
+        slug:  cached.slug,
+        img:   urlFor(cached.image).width(1400).quality(85).auto('format').url(),
+        desc:  cached.description || '',
+        cat:   cached.category?.name || 'Uncategorized',
+        audio: cached.audio?.asset?._ref || null
+      };
+      categorySlug = cached.category?.slug || catSlug(photo.cat);
+      metadata = cached.metadata || null;
+    }
+  } catch (ce) {
+    console.warn('Cache read failed for photo:', slug, ce.message);
+  }
+} else if (source === 'sanity') {
   try {
     const sp = await getSanityPhotoBySlug(slug);
     if (sp && sp.image) {
@@ -62,28 +83,6 @@ if (source === 'sanity' || source === 'cache') {
     }
   } catch (e) {
     console.warn('Sanity photo fetch failed for slug:', slug, e.message);
-    // When using cache and individual fetch fails, build a basic photo
-    // from cached data so the page still generates (without related photos)
-    if (source === 'cache') {
-      const { photos: cachedPhotos } = await import('../../lib/sanity-cache.js').then(m => {
-        const c = m.readCache();
-        return c || { photos: [] };
-      });
-      const cached = cachedPhotos.find(p => p.slug === slug);
-      if (cached && cached.image) {
-        photo = {
-          id:    cached._id,
-          title: cached.title || 'Untitled',
-          slug:  cached.slug,
-          img:   urlFor(cached.image).width(1400).quality(85).auto('format').url(),
-          desc:  cached.description || '',
-          cat:   cached.category?.name || 'Uncategorized',
-          audio: null
-        };
-        categorySlug = cached.category?.slug || catSlug(photo.cat);
-        metadata = cached.metadata || null;
-      }
-    }
   }
 }
 

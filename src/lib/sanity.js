@@ -19,7 +19,7 @@ export const client = createClient({
   token:     import.meta.env.SANITY_READ_TOKEN || '',
   useCdn:    true,   // edge-cached reads (fast)
   requestTagPrefix: 'astro',
-  timeout:   30000,  // 30s timeout — fail fast instead of hanging
+  timeout:   5000,   // 5s timeout — fail fast, fall back to cache
 });
 
 // ── Image URL Builder ──────────────────────────────────────────────
@@ -158,13 +158,18 @@ export function fetchAllWithCache() {
 }
 
 async function _doFetchAllWithCache() {
-  // 1) Try live Sanity
+  // 1) Try live Sanity with a hard 8-second race timeout
+  //    (the Sanity client timeout can hang on blocked proxies)
   try {
-    const [photos, categories, featured] = await Promise.all([
+    const sanityFetch = Promise.all([
       getAllPhotos(),
       getAllCategories(),
       getFeaturedPhoto()
     ]);
+    const hardTimeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Hard timeout: Sanity unreachable after 8s')), 8000)
+    );
+    const [photos, categories, featured] = await Promise.race([sanityFetch, hardTimeout]);
 
     if (photos && photos.length > 0) {
       // Save to cache for next time
